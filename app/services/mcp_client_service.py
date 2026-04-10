@@ -98,6 +98,9 @@ async def publish_via_mcp(args: XHSMCPToolArgs) -> SendPublishResponse:
         raw_text = result.get("raw", "")
     else:
         raw_text = str(result)
+    if result is None:
+        result = {}
+    
     has_error = result.get("success") is False or "error" in raw_text.lower() or "失败" in raw_text
     success = not has_error if raw_text else result.get("success", True)
     message = result.get("message") or raw_text or "发布成功"
