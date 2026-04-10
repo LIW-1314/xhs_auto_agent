@@ -102,24 +102,6 @@ FastAPI 交互文档：`http://127.0.0.1:8000/docs`
 
 ---
 
-## MCP Server 使用
-
-将本项目封装为 MCP Server，可在支持 MCP 协议的 AI 工具（Claude Desktop、Cursor 等）中注册使用。
-
-```bash
-python mcp_server.py
-```
-
-提供以下 MCP 工具：
-
-| 工具 | 说明 |
-|------|------|
-| `run_content_pipeline` | 完整运行内容生成流水线 |
-| `generate_xhs_images` | 根据文案生成配图 |
-| `publish_to_xhs` | 生成配图并一键发布至小红书 |
-| `check_xhs_login` | 检查小红书登录状态 |
-
----
 
 ## 项目结构
 
@@ -176,8 +158,7 @@ xhs_content_agent/
 解决方法： 这通常是因为 .env 文件格式不规范（比如多写了引号或空格），或者 Windows 系统/VS Code 终端里悄悄缓存了旧的环境变量。你需要确保 .env 里是纯文本输入，然后在运行代码的终端里执行 $env:OPENAI_API_KEY="" (PowerShell) 或 set OPENAI_API_KEY= (CMD) 强制清空系统缓存，并彻底关闭、重启终端。
 ### 问题： AI 生成完成后，进入发布阶段时前端瞬间弹出 500 Internal Server Error，且终端没有详细红字报错。
 解决方法： 这是由于 MCP 后台发布脚本执行完毕后，没有向主程序返回（Return）标准格式的数据，导致主程序解析时触发了 NoneType 崩溃。你必须确保 MCP 服务的最后，无论成功还是失败，都严格使用 return {"success": True/False, "message": "..."} 的字典格式进行对接回复。
-### 问题： 启动自动发布时，浏览器没有进入“发布图文”页面，而是被强制跳回了登录页（URL 中带有 redirectReason=401
-）。
+### 问题： 启动自动发布时，浏览器没有进入“发布图文”页面，而是被强制跳回了登录页（URL 中带有 redirectReason=401）。
 解决方法： 这是因为小红书主站和创作者中心的本地存储是不互通的。直接拿主站扫码的凭证去进创作者中心会被拦截。你必须专门写一个脚本，直接在创作者中心扫码，生成专属的 creator_state.json 登录凭证，并在代码的 new_context 中专门加载它。
 ### 问题： 浏览器卡在网页上不动，终端报错 Timeout 30000ms exceeded，提示找不到“上传图文”按钮、输入框，或者传图片卡死。
 解决方法： 现代前端框架有极强的防自动化机制。对于按钮切换，不要用普通的 click，必须用 evaluate("node => node.click()") 进行 JS 强行突破；对于传图片，弃用直接塞 input 的方式，改用 expect_file_chooser() 截获系统真实的物理弹窗；对于填写正文，放弃容易变动的 class 名称，直接定位 [contenteditable='true'] 属性，并使用 page.keyboard.type() 模拟真人键盘敲击来触发网页的字数保存机制。
