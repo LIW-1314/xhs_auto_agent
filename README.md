@@ -102,24 +102,6 @@ FastAPI 交互文档：`http://127.0.0.1:8000/docs`
 
 ---
 
-## MCP Server 使用
-
-将本项目封装为 MCP Server，可在支持 MCP 协议的 AI 工具（Claude Desktop、Cursor 等）中注册使用。
-
-```bash
-python mcp_server.py
-```
-
-提供以下 MCP 工具：
-
-| 工具 | 说明 |
-|------|------|
-| `run_content_pipeline` | 完整运行内容生成流水线 |
-| `generate_xhs_images` | 根据文案生成配图 |
-| `publish_to_xhs` | 生成配图并一键发布至小红书 |
-| `check_xhs_login` | 检查小红书登录状态 |
-
----
 
 ## 项目结构
 
