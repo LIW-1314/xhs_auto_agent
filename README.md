@@ -55,14 +55,31 @@ FEISHU_PUBLISH_TABLE_ID=          # AI 生成笔记表
 XHS_MCP_URL=http://localhost:18060
 XHS_MCP_ENDPOINT=http://localhost:18060/mcp
 ```
+### 3. 获取创作者中心专属通行证 (核心步骤)
+由于小红书主站和创作者中心的缓存不互通，必须单独扫码获取创作者中心的登录态：
 
-### 3. 启动服务
+运行独立的登录脚本：python login_creator.py
 
+在弹出的浏览器中，使用小红书 App 扫码登录。
+
+等待创作者后台完全加载出来后，在终端按下回车键。
+
+确保 data/raw/creator_state.json 文件已成功生成。
+
+### 4. 启动服务(双服务运行)
+由于采用了 MCP 架构，需要开启两个终端窗口分别运行服务：
+#### 终端一：启动底层自动化发布服务 (MCP Server)
 ```bash
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+conda activate xhs_agent
+python app/services/xhs_mcp_server.py
 ```
 
-浏览器访问 `http://127.0.0.1:8000` 进入 Web UI。
+#### 终端二：启动 AI 业务主程序
+```bash
+conda activate xhs_agent
+python run.py
+```
+全部启动后，访问主程序提供的本地网页端口，即可开始全自动生成与发布！
 
 FastAPI 交互文档：`http://127.0.0.1:8000/docs`
 
@@ -153,3 +170,16 @@ xhs_content_agent/
 - 发布功能依赖本地运行的小红书 MCP 服务（默认端口 `18060`），需完成扫码登录。
 - 图片生成需要 OpenAI API Key 且该 Key 有 `gpt-image-1` 的访问权限。
 - 飞书同步为可选功能，未配置时相关接口会返回提示信息而不会报错。
+
+## 踩坑实录
+### 问题： 配置了 API Key，但运行或发布时一直报 401 无效的令牌 或 Incorrect API key。
+解决方法： 这通常是因为 .env 文件格式不规范（比如多写了引号或空格），或者 Windows 系统/VS Code 终端里悄悄缓存了旧的环境变量。你需要确保 .env 里是纯文本输入，然后在运行代码的终端里执行 $env:OPENAI_API_KEY="" (PowerShell) 或 set OPENAI_API_KEY= (CMD) 强制清空系统缓存，并彻底关闭、重启终端。
+### 问题： AI 生成完成后，进入发布阶段时前端瞬间弹出 500 Internal Server Error，且终端没有详细红字报错。
+解决方法： 这是由于 MCP 后台发布脚本执行完毕后，没有向主程序返回（Return）标准格式的数据，导致主程序解析时触发了 NoneType 崩溃。你必须确保 MCP 服务的最后，无论成功还是失败，都严格使用 return {"success": True/False, "message": "..."} 的字典格式进行对接回复。
+### 问题： 启动自动发布时，浏览器没有进入“发布图文”页面，而是被强制跳回了登录页（URL 中带有 redirectReason=401
+）。
+解决方法： 这是因为小红书主站和创作者中心的本地存储是不互通的。直接拿主站扫码的凭证去进创作者中心会被拦截。你必须专门写一个脚本，直接在创作者中心扫码，生成专属的 creator_state.json 登录凭证，并在代码的 new_context 中专门加载它。
+### 问题： 浏览器卡在网页上不动，终端报错 Timeout 30000ms exceeded，提示找不到“上传图文”按钮、输入框，或者传图片卡死。
+解决方法： 现代前端框架有极强的防自动化机制。对于按钮切换，不要用普通的 click，必须用 evaluate("node => node.click()") 进行 JS 强行突破；对于传图片，弃用直接塞 input 的方式，改用 expect_file_chooser() 截获系统真实的物理弹窗；对于填写正文，放弃容易变动的 class 名称，直接定位 [contenteditable='true'] 属性，并使用 page.keyboard.type() 模拟真人键盘敲击来触发网页的字数保存机制。
+### 问题： 运行过程中报错 Element is outside of the viewport。
+解决方法： Playwright 默认的浏览器窗口比较小，导致右侧或下方的网页元素被挤出了屏幕外无法点击。需要在初始化 context 时，添加参数强制撑大浏览器视口，例如设置 viewport={'width': 1920, 'height': 1080}，确保所有 UI 元素都正常暴露在可见范围内。
