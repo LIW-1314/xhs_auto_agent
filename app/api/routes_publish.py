@@ -20,6 +20,7 @@ from app.models.schemas import (
 )
 from app.services.image_service import generate_images
 from app.services.publish_service import build_xhs_payload, build_mcp_tool_args, send_to_xhs
+import traceback          # 新加的
 
 router = APIRouter(prefix="/publish", tags=["Publish"])
 
@@ -87,6 +88,8 @@ async def send_publish(req: SendPublishRequest) -> SendPublishResponse:
             )
             return await publish_via_mcp(mcp_args)
     except Exception as e:
+
+        traceback.print_exc()     # 新加的
         raise HTTPException(status_code=500, detail=f"发布失败: {e}")
 
 

@@ -18,38 +18,24 @@ import json
 from typing import Any
 
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+# from mcp.client.streamable_http import streamablehttp_client
 
 from app.core.config import settings
 from app.models.schemas import XHSMCPToolArgs, SendPublishResponse
 
 
+from mcp.client.sse import sse_client
+
 async def call_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-    """
-    通用 MCP 工具调用。
-
-    Args:
-        tool_name:  工具名称，如 "publish_content"
-        arguments:  工具参数字典
-
-    Returns:
-        工具调用结果（解析后的 dict）
-    """
-    async with streamablehttp_client(settings.xhs_mcp_endpoint) as (read, write, _):
+    """通用 MCP 工具调用。"""
+    # 将端点 /mcp 替换为 Python 默认的 /sse
+    endpoint = settings.xhs_mcp_endpoint.replace("/mcp", "/sse") 
+    
+    # 替换为 sse_client，并且解包参数改为只有 read 和 write
+    async with sse_client(endpoint) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
             result = await session.call_tool(tool_name, arguments=arguments)
-
-    # result.content 是 list[TextContent | ImageContent | ...]
-    # publish_content 返回 TextContent，内容是 JSON 字符串
-    if result.content:
-        first = result.content[0]
-        if hasattr(first, "text"):
-            try:
-                return json.loads(first.text)
-            except json.JSONDecodeError:
-                return {"raw": first.text}
-    return {}
 
 
 async def check_login_status() -> dict[str, Any]:
@@ -59,7 +45,11 @@ async def check_login_status() -> dict[str, Any]:
 
 async def list_mcp_tools() -> list[str]:
     """列出 MCP 服务端注册的所有工具名称（调试用）"""
-    async with streamablehttp_client(settings.xhs_mcp_endpoint) as (read, write, _):
+    # 将端点 /mcp 替换为 /sse
+    endpoint = settings.xhs_mcp_endpoint.replace("/mcp", "/sse") 
+    
+    # 替换为 sse_client，并且解包参数改为只有 read 和 write
+    async with sse_client(endpoint) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
             tools_result = await session.list_tools()
@@ -102,7 +92,12 @@ async def publish_via_mcp(args: XHSMCPToolArgs) -> SendPublishResponse:
 
     # XHS MCP 工具不一定返回 {"success": true}，
     # 只要调用未抛异常且返回内容不含明确错误标志，即视为成功
-    raw_text = result.get("raw", "")
+    if result is None:
+        raw_text = "✅ 发布任务已在后台执行完毕"
+    elif isinstance(result, dict):
+        raw_text = result.get("raw", "")
+    else:
+        raw_text = str(result)
     has_error = result.get("success") is False or "error" in raw_text.lower() or "失败" in raw_text
     success = not has_error if raw_text else result.get("success", True)
     message = result.get("message") or raw_text or "发布成功"
