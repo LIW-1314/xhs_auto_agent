@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Any, List, Literal, Optional
 
 
 class HealthResponse(BaseModel):
@@ -82,10 +82,35 @@ class ContentItem(BaseModel):
     cta: str
     image_suggestion: str
     content_type: str
+    review: Optional["ContentReview"] = None
 
 
 class ContentGenerateResponse(BaseModel):
     contents: List[ContentItem]
+
+
+class ReviewDimension(BaseModel):
+    name: str
+    score: int = Field(..., ge=0, le=100)
+    comment: str
+
+
+class ContentReview(BaseModel):
+    total_score: int = Field(..., ge=0, le=100)
+    publish_ready: bool
+    risk_level: Literal["low", "medium", "high"]
+    dimensions: List[ReviewDimension]
+    suggestions: List[str]
+    risk_flags: List[str]
+    summary: str
+
+
+class ContentReviewRequest(BaseModel):
+    content: ContentItem
+
+
+class ContentReviewResponse(BaseModel):
+    review: ContentReview
 
 
 class AgentRunRequest(BaseModel):
@@ -232,3 +257,38 @@ class FeishuSyncResponse(BaseModel):
 
 class FeishuCrawledSyncRequest(BaseModel):
     items: List[NoteItem]
+
+
+TaskType = Literal["agent_run", "publish_run"]
+TaskStatus = Literal["pending", "running", "succeeded", "failed"]
+
+
+class TaskSummary(BaseModel):
+    task_id: str
+    task_type: TaskType
+    status: TaskStatus
+    message: str = ""
+    retry_count: int = 0
+    max_retries: int = 0
+    created_at: str
+    updated_at: str
+
+
+class TaskDetail(TaskSummary):
+    input_payload: dict[str, Any]
+    result: Optional[dict[str, Any]] = None
+    error: str = ""
+
+
+class TaskCreateResponse(BaseModel):
+    task_id: str
+    status: TaskStatus
+    message: str
+
+
+class TaskListResponse(BaseModel):
+    items: List[TaskSummary]
+    count: int
+
+
+ContentItem.model_rebuild()

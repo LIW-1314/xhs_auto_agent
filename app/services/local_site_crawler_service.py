@@ -22,6 +22,7 @@ from app.models.schemas import (
 XHS_BASE = "https://www.xiaohongshu.com"
 COOKIES_FILE = "data/raw/xhs_cookies.json"
 STATE_FILE   = "data/raw/xhs_state.json"
+LATEST_CRAWL_FILE = "data/raw/latest_crawled_notes.json"
 
 INVALID_AD_WORDS = ["商单", "广告", "投放合作", "品牌合作"]
 VIDEO_TYPE_KEYWORDS = ["视频", "直播", "合集"]
@@ -451,4 +452,13 @@ class XHSCrawler:
 
 async def crawl_local_site_notes(request: SearchCrawlRequest) -> SearchCrawlResponse:
     crawler = XHSCrawler(request)
-    return await crawler.crawl()
+    result = await crawler.crawl()
+
+    latest_path = Path(LATEST_CRAWL_FILE)
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.write_text(
+        json.dumps(result.model_dump(mode="json"), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    return result

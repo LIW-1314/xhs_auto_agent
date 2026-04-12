@@ -7,6 +7,7 @@ if sys.platform.startswith("win"):
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from app.core.logging_config import setup_logging
 from app.core.config import settings
 from app.api.routes_health import router as health_router
 from app.api.routes_analysis import router as analysis_router
@@ -16,7 +17,9 @@ from app.api.routes_agent import router as agent_router
 from app.api.routes_local_site_crawler import router as local_crawl_router
 from app.api.routes_publish import router as publish_router
 from app.api.routes_feishu import router as feishu_router
+from app.api.routes_tasks import router as tasks_router
 from app.api.routes_xhs_service import router as xhs_service_router
+from app.services.task_service import _ensure_db
 
 app = FastAPI(
     title=settings.app_name,
@@ -33,6 +36,7 @@ app.include_router(agent_router)
 app.include_router(local_crawl_router)
 app.include_router(publish_router)
 app.include_router(feishu_router)
+app.include_router(tasks_router)
 app.include_router(xhs_service_router)
 
 Path("data/output/images").mkdir(parents=True, exist_ok=True)
@@ -44,3 +48,9 @@ from fastapi.responses import RedirectResponse
 @app.get("/", tags=["Root"])
 def root():
     return RedirectResponse(url="/static/index.html")
+
+
+@app.on_event("startup")
+def startup() -> None:
+    setup_logging()
+    _ensure_db()

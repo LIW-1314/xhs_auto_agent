@@ -8,8 +8,7 @@ from playwright.async_api import async_playwright
 import os
 from dotenv import load_dotenv
 
-load_dotenv(override=True) 
-print("当前使用的 API KEY 后四位:", os.getenv("OPENAI_API_KEY")[-4:] if os.getenv("OPENAI_API_KEY") else "未找到")
+load_dotenv(override=True)
 
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))

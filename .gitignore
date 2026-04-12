@@ -65,3 +65,7 @@ images/
 Thumbs.db
 
 .claude
+# 删除文件及面试相关的文件
+mcp_server.py
+interview_qa.md
+interview_qa.docx

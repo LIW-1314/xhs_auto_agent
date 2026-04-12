@@ -9,6 +9,7 @@ from app.models.schemas import (
     ContentGenerateRequest,
     ContentGenerateResponse,
 )
+from app.services.review_service import attach_reviews
 
 
 def load_prompt_template() -> str:
@@ -51,4 +52,5 @@ def generate_contents(request: ContentGenerateRequest) -> ContentGenerateRespons
         }
     )
 
+    result.contents = attach_reviews(result.contents)
     return result

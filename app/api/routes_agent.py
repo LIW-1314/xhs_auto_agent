@@ -10,5 +10,7 @@ router = APIRouter(prefix="/agent", tags=["Agent"])
 async def run_agent_endpoint(request: AgentRunRequest):
     try:
         return await run_agent_pipeline(request)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
